@@ -27,7 +27,7 @@ jobs:
           d.text((x,y),t,font=f,fill="white",stroke_width=3,stroke_fill=(0,25,55,255))
           im.save("P277.ico",format="ICO",sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
           '@ | python
-      - name: Build Defender-friendly folder release
+      - name: Validate Python syntax\n        run: python -m py_compile app.py\n      - name: Build Defender-friendly folder release
         run: pyinstaller --noconfirm --clean --onedir --windowed --noupx --name "Datownik_by_Projekt_277_PJ" --icon P277.ico --version-file version_info.txt --add-data "P277.ico;." app.py
       - name: ZIP release
         shell: pwsh
