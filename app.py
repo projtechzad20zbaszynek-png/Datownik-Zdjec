@@ -72,7 +72,7 @@ class App(tk.Tk):
    ico=Path(getattr(sys,"_MEIPASS",Path(__file__).parent))/"P277.ico";self.iconbitmap(str(ico))
   except:pass
   st=ttk.Style(self);st.theme_use("clam");st.configure(".",background="#0b3d73",foreground="white",fieldbackground="#eaf4ff");st.configure("TFrame",background="#0b3d73");st.configure("TLabel",background="#0b3d73",foreground="white");st.configure("TCheckbutton",background="#0b3d73",foreground="white");st.configure("TButton",background="#1677d2",foreground="white",padding=6);st.map("TButton",background=[("active","#2493f2")]);st.configure("TCombobox",fieldbackground="white",foreground="#082b50")
-  self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[];self.drag_pending=None
+  self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[];self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[];self.drag_pending=None
   self.fontv=tk.StringVar(value="LCD");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
   self.sz=tk.IntVar(value=44);self.tm=tk.BooleanVar();self.gp=tk.BooleanVar();self.exif=tk.BooleanVar(value=True)
   self.manual=tk.BooleanVar();self.mdate=tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
@@ -100,12 +100,32 @@ class App(tk.Tk):
   if p:self.src.set(p);self.sl.config(text=p);self.first()
  def pickexcel(self):
   f=filedialog.askopenfilenames(filetypes=[("Excel","*.xlsx *.xlsm")])
-  if f:\n   self.exc=list(f);self.el.config(text=f"Excel: {len(f)}");self.st.config(text="Wczytuję Excel...");self.update_idletasks();self.date_map,self.date_conf=load_dates(self.exc);self.st.config(text=f"Wczytano {len(self.date_map)} dat");self.refresh()
+  if f:
+   self.exc=list(f)
+   self.el.config(text=f"Excel: {len(f)}")
+   self.st.config(text="Wczytuję Excel...")
+   self.update_idletasks()
+   try:
+    self.date_map,self.date_conf=load_dates(self.exc)
+    self.st.config(text=f"Wczytano {len(self.date_map)} dat")
+   except Exception as e:
+    self.date_map={};self.date_conf=[]
+    messagebox.showerror("Excel",str(e))
+   self.refresh()
  def first(self):
-  self.preview=None
+  self.preview=None;self.preview_img=None;self.preview_exif={}
   for dp,_,fs in os.walk(self.src.get()):
    for f in sorted(fs):
-    if Path(f).suffix.lower() in EXT:\n     self.preview=Path(dp)/f\n     try:\n      with Image.open(self.preview) as z:self.preview_exif=z.getexif();self.preview_img=ImageOps.exif_transpose(z).convert("RGB")\n     except:self.preview_img=None;self.preview_exif={}\n     self.refresh();return
+    if Path(f).suffix.lower() in EXT:
+     self.preview=Path(dp)/f
+     try:
+      with Image.open(self.preview) as z:
+       self.preview_exif=z.getexif()
+       self.preview_img=ImageOps.exif_transpose(z).convert("RGB")
+     except Exception as e:
+      self.st.config(text="Podgląd: "+str(e))
+     self.refresh()
+     return
  def match(self,p,mp):
   cur=p.parent;root=Path(self.src.get())
   while True:
@@ -117,29 +137,34 @@ class App(tk.Tk):
  def chosen_manual(self):
   return pdate(self.mdate.get())
  def previewdate(self):
-  if self.manual.get():
-   return self.chosen_manual() or datetime.now().date()
+  if self.manual.get():return self.chosen_manual() or datetime.now().date()
   try:
-   if self.exc:
-    mp,_=load_dates(self.exc);d,_=self.match(self.preview,mp)
+   if self.preview and self.date_map:
+    d,_=self.match(self.preview,self.date_map)
     if d:return d
   except:pass
   return datetime.now().date()
  def refresh(self):
-  if not hasattr(self,"cv"):return
-  self.cv.delete("all")
-  if not self.preview:return
+  if not hasattr(self,"cv") or not self.preview or self.preview_img is None:return
   try:
-   with Image.open(self.preview) as z:ex=z.getexif();im=ImageOps.exif_transpose(z).convert("RGB")
-   cw=max(100,self.cv.winfo_width());ch=max(100,self.cv.winfo_height());sc=min(cw/im.width,ch/im.height);w=int(im.width*sc);h=int(im.height*sc);ox=(cw-w)//2;oy=(ch-h)//2
-   im=im.resize((w,h),Image.Resampling.LANCZOS);self.photo=ImageTk.PhotoImage(im);self.cv.create_image(ox,oy,image=self.photo,anchor="nw")
-   txt=textval(self.previewdate(),self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get());fs=max(10,int(self.sz.get()*sc));fn="Consolas" if self.fontv.get()=="LCD" else self.fontv.get()
-   self.cv.create_text(ox+self.x*w,oy+self.y*h,text=txt,font=(fn,fs,"bold"),fill="#ff9b21",stroke_width=max(1,fs//18),stroke_fill="#2b1200",anchor=self.anchor,tags="stamp");self.box=(ox,oy,w,h)
+   self.cv.delete("all")
+   ex=self.preview_exif;im=self.preview_img
+   cw=max(100,self.cv.winfo_width());ch=max(100,self.cv.winfo_height());sc=min(cw/im.width,ch/im.height)
+   w=max(1,int(im.width*sc));h=max(1,int(im.height*sc));ox=(cw-w)//2;oy=(ch-h)//2
+   shown=im.resize((w,h),Image.Resampling.LANCZOS);self.photo=ImageTk.PhotoImage(shown);self.cv.create_image(ox,oy,image=self.photo,anchor="nw")
+   txt=textval(self.previewdate(),self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get())
+   fs=max(12,int(self.sz.get()*sc));fn="Consolas" if self.fontv.get()=="LCD" else self.fontv.get()
+   self.cv.create_text(ox+self.x*w,oy+self.y*h,text=txt,font=(fn,fs,"bold"),fill="#ff9b21",stroke_width=max(1,fs//18),stroke_fill="#2b1200",anchor=self.anchor,tags=("stamp",))
+   self.box=(ox,oy,w,h)
   except Exception as e:self.st.config(text="Podgląd: "+str(e))
  def drag(self,e):
   if self.box:
-   ox,oy,w,h=self.box;self.x=min(.99,max(.01,(e.x-ox)/w));self.y=min(.99,max(.01,(e.y-oy)/h));self.anchor="center";self.refresh()
- def setpos(self,x,y,a):self.x=x;self.y=y;self.anchor=a;self.refresh()
+   ox,oy,w,h=self.box
+   self.x=min(.99,max(.01,(e.x-ox)/w));self.y=min(.99,max(.01,(e.y-oy)/h));self.anchor="center"
+   self.cv.itemconfigure("stamp",anchor="center")
+   self.cv.coords("stamp",ox+self.x*w,oy+self.y*h)
+ def setpos(self,x,y,a):
+  self.x=x;self.y=y;self.anchor=a;self.refresh()
  def start(self):
   if not self.src.get():return messagebox.showwarning("Brak folderu","Wybierz folder zdjęć.")
   if self.manual.get():
