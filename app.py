@@ -174,7 +174,8 @@ class App(tk.Tk):
  def run(self):
   try:
    mp={};conf=[]
-   if not self.manual.get():\n    mp,conf=(self.date_map,self.date_conf) if self.date_map else load_dates(self.exc)
+   if not self.manual.get():
+     mp,conf=(self.date_map,self.date_conf) if self.date_map else load_dates(self.exc)
    if conf:raise ValueError("Sprzeczne daty w Excel dla: "+", ".join(conf[:20]))
    md=self.chosen_manual() if self.manual.get() else None;root=Path(self.src.get());out=root.parent/(root.name+"_DATOWANE");files=[p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in EXT];self.pb["maximum"]=max(1,len(files))
    rows=[];missing=set();errors=[];ok=0
