@@ -50,9 +50,16 @@ def gps(ex):
   if g[3] in ("W",b"W"):b=-b
   return a,b
  except:return None
+STYLES={
+ "Canon klasyczny":("arialbd.ttf",(255,155,33),(43,18,0)),
+ "Nikon żółty":("arialbd.ttf",(255,220,35),(20,20,20)),
+ "Sony biały":("segoeuib.ttf",(255,255,255),(0,0,0)),
+ "Fuji cyfrowy":("consolab.ttf",(255,165,35),(0,0,0)),
+ "Olympus czerwony":("courbd.ttf",(255,85,65),(25,0,0))
+}
 def getfont(name,size):
- fs={"LCD":"consolab.ttf","Cyfrowa":"courbd.ttf","Arial":"arialbd.ttf","Segoe UI":"segoeuib.ttf","Consolas":"consola.ttf"}
- p=os.path.join(os.environ.get("WINDIR","C:/Windows"),"Fonts",fs.get(name,"arial.ttf"))
+ fontfile=STYLES.get(name,STYLES["Canon klasyczny"])[0]
+ p=os.path.join(os.environ.get("WINDIR","C:/Windows"),"Fonts",fontfile)
  try:return ImageFont.truetype(p,size)
  except:return ImageFont.load_default()
 def textval(d,layout,sep,ex,tm,gp):
