@@ -73,7 +73,7 @@ class App(tk.Tk):
   except:pass
   st=ttk.Style(self);st.theme_use("clam");st.configure(".",background="#0b3d73",foreground="white",fieldbackground="#eaf4ff");st.configure("TFrame",background="#0b3d73");st.configure("TLabel",background="#0b3d73",foreground="white");st.configure("TCheckbutton",background="#0b3d73",foreground="white");st.configure("TButton",background="#1677d2",foreground="white",padding=6);st.map("TButton",background=[("active","#2493f2")]);st.configure("TCombobox",fieldbackground="white",foreground="#082b50")
   self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[]
-  self.fontv=tk.StringVar(value="LCD");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
+  self.fontv=tk.StringVar(value="Canon klasyczny");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
   self.sz=tk.IntVar(value=44);self.tm=tk.BooleanVar();self.gp=tk.BooleanVar();self.exif=tk.BooleanVar(value=True)
   self.manual=tk.BooleanVar();self.mdate=tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"));self.sample_date=date(2026,6,10)
   self.x=.97;self.y=.95;self.anchor="se";self.ui()
@@ -84,9 +84,9 @@ class App(tk.Tk):
   ttk.Button(l,text="2. Dodaj pliki Excel (opcjonalnie)",command=self.pickexcel).pack(fill="x");self.el=ttk.Label(l,text="Excel: 0");self.el.pack(anchor="w",pady=(3,4))
   ttk.Checkbutton(l,text="Użyj ręcznie wpisanej daty dla wszystkich zdjęć",variable=self.manual,command=self.refresh).pack(anchor="w")
   q=ttk.Frame(l);q.pack(fill="x",pady=(2,8));ttk.Label(q,text="Data:").pack(side="left");ttk.Entry(q,textvariable=self.mdate,width=14).pack(side="left",padx=5);ttk.Label(q,text="np. 10.06.2026").pack(side="left")
-  for label,var,vals in [("Czcionka",self.fontv,["LCD","Cyfrowa","Arial","Segoe UI","Consolas"]),("Układ daty",self.layout,["DD MM RRRR","RRRR MM DD"]),("Separator",self.sep,[".","-","/"])]:
+  for label,var,vals in [("Styl aparatu",self.fontv,list(STYLES.keys())),("Układ daty",self.layout,["DD MM RRRR","RRRR MM DD"]),("Separator",self.sep,[".","-","/"])]:
    ttk.Label(l,text=label).pack(anchor="w");c=ttk.Combobox(l,textvariable=var,values=vals,state="readonly");c.pack(fill="x",pady=(0,5));c.bind("<<ComboboxSelected>>",lambda e:self.refresh())
-  ttk.Label(l,text="Rozmiar").pack(anchor="w");ttk.Scale(l,from_=18,to=110,variable=self.sz,command=lambda e:self.refresh()).pack(fill="x")
+  ttk.Label(l,text="Rozmiar").pack(anchor="w");ttk.Scale(l,from_=20,to=90,variable=self.sz,command=lambda e:self.refresh()).pack(fill="x")
   ttk.Checkbutton(l,text="Dodaj godzinę z EXIF",variable=self.tm,command=self.refresh).pack(anchor="w")
   ttk.Checkbutton(l,text="Dodaj GPS z EXIF",variable=self.gp,command=self.refresh).pack(anchor="w")
   ttk.Checkbutton(l,text="Zmień datę wykonania EXIF (zachowaj godzinę)",variable=self.exif).pack(anchor="w")
@@ -184,7 +184,7 @@ class App(tk.Tk):
       bud=next((a.name for a in [p.parent,*p.parents] if norm(a.name).startswith("BUD ")),p.parent.name);missing.add(bud);rows.append([str(p.relative_to(root)),bud,"BRAK DATY"]);self.after(0,lambda v=i:self.pb.configure(value=v));continue
     try:
      with Image.open(p) as src:ex=src.getexif();ot=xtime(ex);icc=src.info.get("icc_profile");im=ImageOps.exif_transpose(src).convert("RGB")
-     txt=textval(d,self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get());fo=getfont(self.fontv.get(),max(12,self.sz.get()));dr=ImageDraw.Draw(im);sw=max(1,self.sz.get()//18);bb=dr.textbbox((0,0),txt,font=fo,stroke_width=sw);tw=bb[2]-bb[0];th=bb[3]-bb[1];xx=self.x*im.width;yy=self.y*im.height;off={"nw":(0,0),"ne":(tw,0),"sw":(0,th),"se":(tw,th),"center":(tw/2,th/2)}[self.anchor];dr.text((xx-off[0],yy-off[1]),txt,font=fo,fill=(255,155,33),stroke_width=sw,stroke_fill=(43,18,0))
+     txt=textval(d,self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get());fontfile,fill_rgb,stroke_rgb=STYLES[self.fontv.get()];font_size=max(16,int(min(im.width,im.height)*(self.sz.get()/1000.0)));fo=getfont(self.fontv.get(),font_size);dr=ImageDraw.Draw(im);sw=max(2,font_size//16);bb=dr.textbbox((0,0),txt,font=fo,stroke_width=sw);tw=bb[2]-bb[0];th=bb[3]-bb[1];xx=self.x*im.width;yy=self.y*im.height;off={"nw":(0,0),"ne":(tw,0),"sw":(0,th),"se":(tw,th),"center":(tw/2,th/2)}[self.anchor];dr.text((xx-off[0],yy-off[1]),txt,font=fo,fill=fill_rgb,stroke_width=sw,stroke_fill=stroke_rgb)
      if self.exif.get():
       val=f"{d:%Y:%m:%d} {ot:%H:%M:%S}" if ot else f"{d:%Y:%m:%d} 00:00:00"
       for t in DATE_TAGS:ex[t]=val
