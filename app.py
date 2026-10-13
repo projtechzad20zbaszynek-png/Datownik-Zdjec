@@ -1,4 +1,4 @@
-import os,re,csv,threading,subprocess
+import os,re,csv,threading,subprocess,sys
 from pathlib import Path
 from datetime import datetime,date
 import tkinter as tk
@@ -67,7 +67,11 @@ def textval(d,layout,sep,ex,tm,gp):
  return "  ".join(a)
 class App(tk.Tk):
  def __init__(self):
-  super().__init__();self.title("Datownik Zdjęć FINAL");self.geometry("1240x820");self.minsize(1080,720)
+  super().__init__();self.title("Datownik by Projekt 277 PJ");self.geometry("1240x820");self.minsize(1080,720);self.configure(bg="#0b3d73")
+  try:
+   ico=Path(getattr(sys,"_MEIPASS",Path(__file__).parent))/"P277.ico";self.iconbitmap(str(ico))
+  except:pass
+  st=ttk.Style(self);st.theme_use("clam");st.configure(".",background="#0b3d73",foreground="white",fieldbackground="#eaf4ff");st.configure("TFrame",background="#0b3d73");st.configure("TLabel",background="#0b3d73",foreground="white");st.configure("TCheckbutton",background="#0b3d73",foreground="white");st.configure("TButton",background="#1677d2",foreground="white",padding=6);st.map("TButton",background=[("active","#2493f2")]);st.configure("TCombobox",fieldbackground="white",foreground="#082b50")
   self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None
   self.fontv=tk.StringVar(value="LCD");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
   self.sz=tk.IntVar(value=44);self.tm=tk.BooleanVar();self.gp=tk.BooleanVar();self.exif=tk.BooleanVar(value=True)
@@ -75,7 +79,7 @@ class App(tk.Tk):
   self.x=.97;self.y=.95;self.anchor="se";self.ui()
  def ui(self):
   l=ttk.Frame(self,padding=12);l.pack(side="left",fill="y");r=ttk.Frame(self,padding=12);r.pack(fill="both",expand=True)
-  ttk.Label(l,text="DATOWNIK ZDJĘĆ",font=("Segoe UI",18,"bold")).pack(anchor="w",pady=(0,10))
+  ttk.Label(l,text="P277   Datownik by Projekt 277 PJ",font=("Segoe UI",18,"bold")).pack(anchor="w",pady=(0,2));ttk.Label(l,text="Projekt 277 - Patryk Jabłoński",font=("Segoe UI",9)).pack(anchor="w",pady=(0,10))
   ttk.Button(l,text="1. Wybierz folder zdjęć",command=self.pickfolder).pack(fill="x");self.sl=ttk.Label(l,text="Nie wybrano",wraplength=350);self.sl.pack(anchor="w",pady=(3,8))
   ttk.Button(l,text="2. Dodaj pliki Excel (opcjonalnie)",command=self.pickexcel).pack(fill="x");self.el=ttk.Label(l,text="Excel: 0");self.el.pack(anchor="w",pady=(3,4))
   ttk.Checkbutton(l,text="Użyj ręcznie wpisanej daty dla wszystkich zdjęć",variable=self.manual,command=self.refresh).pack(anchor="w")
@@ -90,7 +94,7 @@ class App(tk.Tk):
   for t,x,y,a in [("↖",.03,.05,"nw"),("↗",.97,.05,"ne"),("↙",.03,.95,"sw"),("↘",.97,.95,"se")]:ttk.Button(p,text=t,command=lambda x=x,y=y,a=a:self.setpos(x,y,a)).pack(side="left",expand=True,fill="x")
   ttk.Label(l,text="Datownik możesz przeciągać myszką na podglądzie.",wraplength=350).pack(anchor="w",pady=7)
   ttk.Button(l,text="URUCHOM DATOWANIE",command=self.start).pack(fill="x",pady=(10,4));self.pb=ttk.Progressbar(l);self.pb.pack(fill="x");self.st=ttk.Label(l,text="Gotowy");self.st.pack(anchor="w")
-  ttk.Label(r,text="Podgląd pierwszego zdjęcia",font=("Segoe UI",14,"bold")).pack(anchor="w");self.cv=tk.Canvas(r,bg="#202020",highlightthickness=0);self.cv.pack(fill="both",expand=True,pady=(8,0));self.cv.bind("<Configure>",lambda e:self.refresh());self.cv.bind("<Button-1>",self.drag);self.cv.bind("<B1-Motion>",self.drag)
+  ttk.Label(r,text="Podgląd pierwszego zdjęcia",font=("Segoe UI",14,"bold")).pack(anchor="w");self.cv=tk.Canvas(r,bg="#06294d",highlightthickness=0);self.cv.pack(fill="both",expand=True,pady=(8,0));self.cv.bind("<Configure>",lambda e:self.refresh());self.cv.bind("<Button-1>",self.drag);self.cv.bind("<B1-Motion>",self.drag)
  def pickfolder(self):
   p=filedialog.askdirectory()
   if p:self.src.set(p);self.sl.config(text=p);self.first()
