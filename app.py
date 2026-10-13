@@ -72,7 +72,7 @@ class App(tk.Tk):
    ico=Path(getattr(sys,"_MEIPASS",Path(__file__).parent))/"P277.ico";self.iconbitmap(str(ico))
   except:pass
   st=ttk.Style(self);st.theme_use("clam");st.configure(".",background="#0b3d73",foreground="white",fieldbackground="#eaf4ff");st.configure("TFrame",background="#0b3d73");st.configure("TLabel",background="#0b3d73",foreground="white");st.configure("TCheckbutton",background="#0b3d73",foreground="white");st.configure("TButton",background="#1677d2",foreground="white",padding=6);st.map("TButton",background=[("active","#2493f2")]);st.configure("TCombobox",fieldbackground="white",foreground="#082b50")
-  self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[];self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[];self.drag_pending=None
+  self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[]
   self.fontv=tk.StringVar(value="LCD");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
   self.sz=tk.IntVar(value=44);self.tm=tk.BooleanVar();self.gp=tk.BooleanVar();self.exif=tk.BooleanVar(value=True)
   self.manual=tk.BooleanVar();self.mdate=tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
