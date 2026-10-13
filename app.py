@@ -72,7 +72,7 @@ class App(tk.Tk):
    ico=Path(getattr(sys,"_MEIPASS",Path(__file__).parent))/"P277.ico";self.iconbitmap(str(ico))
   except:pass
   st=ttk.Style(self);st.theme_use("clam");st.configure(".",background="#0b3d73",foreground="white",fieldbackground="#eaf4ff");st.configure("TFrame",background="#0b3d73");st.configure("TLabel",background="#0b3d73",foreground="white");st.configure("TCheckbutton",background="#0b3d73",foreground="white");st.configure("TButton",background="#1677d2",foreground="white",padding=6);st.map("TButton",background=[("active","#2493f2")]);st.configure("TCombobox",fieldbackground="white",foreground="#082b50")
-  self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None
+  self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[];self.drag_pending=None
   self.fontv=tk.StringVar(value="LCD");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
   self.sz=tk.IntVar(value=44);self.tm=tk.BooleanVar();self.gp=tk.BooleanVar();self.exif=tk.BooleanVar(value=True)
   self.manual=tk.BooleanVar();self.mdate=tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
@@ -100,12 +100,12 @@ class App(tk.Tk):
   if p:self.src.set(p);self.sl.config(text=p);self.first()
  def pickexcel(self):
   f=filedialog.askopenfilenames(filetypes=[("Excel","*.xlsx *.xlsm")])
-  if f:self.exc=list(f);self.el.config(text=f"Excel: {len(f)}");self.refresh()
+  if f:\n   self.exc=list(f);self.el.config(text=f"Excel: {len(f)}");self.st.config(text="Wczytuję Excel...");self.update_idletasks();self.date_map,self.date_conf=load_dates(self.exc);self.st.config(text=f"Wczytano {len(self.date_map)} dat");self.refresh()
  def first(self):
   self.preview=None
   for dp,_,fs in os.walk(self.src.get()):
    for f in sorted(fs):
-    if Path(f).suffix.lower() in EXT:self.preview=Path(dp)/f;self.refresh();return
+    if Path(f).suffix.lower() in EXT:\n     self.preview=Path(dp)/f\n     try:\n      with Image.open(self.preview) as z:self.preview_exif=z.getexif();self.preview_img=ImageOps.exif_transpose(z).convert("RGB")\n     except:self.preview_img=None;self.preview_exif={}\n     self.refresh();return
  def match(self,p,mp):
   cur=p.parent;root=Path(self.src.get())
   while True:
@@ -134,7 +134,7 @@ class App(tk.Tk):
    cw=max(100,self.cv.winfo_width());ch=max(100,self.cv.winfo_height());sc=min(cw/im.width,ch/im.height);w=int(im.width*sc);h=int(im.height*sc);ox=(cw-w)//2;oy=(ch-h)//2
    im=im.resize((w,h),Image.Resampling.LANCZOS);self.photo=ImageTk.PhotoImage(im);self.cv.create_image(ox,oy,image=self.photo,anchor="nw")
    txt=textval(self.previewdate(),self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get());fs=max(10,int(self.sz.get()*sc));fn="Consolas" if self.fontv.get()=="LCD" else self.fontv.get()
-   self.cv.create_text(ox+self.x*w,oy+self.y*h,text=txt,font=(fn,fs,"bold"),fill="#ff9b21",stroke_width=max(1,fs//18),stroke_fill="#2b1200",anchor=self.anchor);self.box=(ox,oy,w,h)
+   self.cv.create_text(ox+self.x*w,oy+self.y*h,text=txt,font=(fn,fs,"bold"),fill="#ff9b21",stroke_width=max(1,fs//18),stroke_fill="#2b1200",anchor=self.anchor,tags="stamp");self.box=(ox,oy,w,h)
   except Exception as e:self.st.config(text="Podgląd: "+str(e))
  def drag(self,e):
   if self.box:
@@ -149,7 +149,7 @@ class App(tk.Tk):
  def run(self):
   try:
    mp={};conf=[]
-   if not self.manual.get():mp,conf=load_dates(self.exc)
+   if not self.manual.get():\n    mp,conf=(self.date_map,self.date_conf) if self.date_map else load_dates(self.exc)
    if conf:raise ValueError("Sprzeczne daty w Excel dla: "+", ".join(conf[:20]))
    md=self.chosen_manual() if self.manual.get() else None;root=Path(self.src.get());out=root.parent/(root.name+"_DATOWANE");files=[p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in EXT];self.pb["maximum"]=max(1,len(files))
    rows=[];missing=set();errors=[];ok=0
@@ -159,7 +159,7 @@ class App(tk.Tk):
      d,k=self.match(p,mp)
      if not d:
       # report nearest BUD folder name, else direct parent
-      bud=next((a.name for a in [p.parent,*p.parents] if norm(a.name).startswith("BUD ")),p.parent.name);missing.add(bud);rows.append([str(p.relative_to(root)),bud,"BRAK DATY"]);self.pb["value"]=i;continue
+      bud=next((a.name for a in [p.parent,*p.parents] if norm(a.name).startswith("BUD ")),p.parent.name);missing.add(bud);rows.append([str(p.relative_to(root)),bud,"BRAK DATY"]);self.after(0,lambda v=i:self.pb.configure(value=v));continue
     try:
      with Image.open(p) as src:ex=src.getexif();ot=xtime(ex);icc=src.info.get("icc_profile");im=ImageOps.exif_transpose(src).convert("RGB")
      txt=textval(d,self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get());fo=getfont(self.fontv.get(),max(12,self.sz.get()));dr=ImageDraw.Draw(im);sw=max(1,self.sz.get()//18);bb=dr.textbbox((0,0),txt,font=fo,stroke_width=sw);tw=bb[2]-bb[0];th=bb[3]-bb[1];xx=self.x*im.width;yy=self.y*im.height;off={"nw":(0,0),"ne":(tw,0),"sw":(0,th),"se":(tw,th),"center":(tw/2,th/2)}[self.anchor];dr.text((xx-off[0],yy-off[1]),txt,font=fo,fill=(255,155,33),stroke_width=sw,stroke_fill=(43,18,0))
@@ -173,7 +173,7 @@ class App(tk.Tk):
      if icc:kw["icc_profile"]=icc
      im.save(dest,**kw);ok+=1;rows.append([str(p.relative_to(root)),k,d.strftime("%d.%m.%Y"),"OK"])
     except Exception as e:errors.append(f"{p}: {e}");rows.append([str(p.relative_to(root)),k,"BŁĄD"])
-    self.pb["value"]=i;self.st.config(text=f"{i}/{len(files)}")
+    self.after(0,lambda v=i,n=len(files):(self.pb.configure(value=v),self.st.config(text=f"{v}/{n}")))
    out.mkdir(parents=True,exist_ok=True);report=out/"Raport_Datownika.txt"
    with open(report,"w",encoding="utf-8-sig") as f:
     f.write("RAPORT - DATOWNIK ZDJĘĆ\n"+"="*60+"\n");f.write(f"Data raportu: {datetime.now():%d.%m.%Y %H:%M:%S}\nZdjęcia znalezione: {len(files)}\nZdjęcia przetworzone: {ok}\nFoldery bez przypisanej daty: {len(missing)}\nBłędy: {len(errors)}\n\n")
@@ -188,5 +188,5 @@ class App(tk.Tk):
    try:os.startfile(report)
    except:pass
    messagebox.showinfo("Gotowe",f"Przetworzono: {ok}/{len(files)}\nRaport: {report}")
-  except Exception as e:messagebox.showerror("Błąd",str(e))
+  except Exception as e:self.after(0,lambda err=str(e):messagebox.showerror("Błąd",err))
 if __name__=="__main__":App().mainloop()
