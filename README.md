@@ -1,0 +1,1 @@
+# Datownik Zdjęć FINAL\nAplikacja Windows: Excel ID_BUD/Data wykonania kontroli lub jedna data ręczna; podgląd i przeciąganie datownika; osobny wybór czcionki, układu i separatora; czas/GPS z EXIF; korekta dat EXIF; raport TXT z folderami bez daty; oryginały pozostają bez zmian.\n
