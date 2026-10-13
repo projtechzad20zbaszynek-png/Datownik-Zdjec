@@ -1,0 +1,11 @@
+VSVersionInfo(
+ ffi=FixedFileInfo(filevers=(1,0,0,0),prodvers=(1,0,0,0),mask=0x3f,flags=0x0,OS=0x40004,fileType=0x1,subtype=0x0,date=(0,0)),
+ kids=[StringFileInfo([StringTable('040904B0',[
+  StringStruct('CompanyName','Projekt 277 - Patryk Jabłoński'),
+  StringStruct('FileDescription','Datownik by Projekt 277 PJ'),
+  StringStruct('FileVersion','1.0.0.0'),
+  StringStruct('InternalName','Datownik_Projekt277'),
+  StringStruct('LegalCopyright','© Projekt 277 - Patryk Jabłoński'),
+  StringStruct('OriginalFilename','Datownik_by_Projekt_277_PJ.exe'),
+  StringStruct('ProductName','Datownik by Projekt 277 PJ'),
+  StringStruct('ProductVersion','1.0.0.0')])]),VarFileInfo([VarStruct('Translation',[1045,1200])])])
