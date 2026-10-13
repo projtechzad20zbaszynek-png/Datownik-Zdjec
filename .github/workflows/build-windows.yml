@@ -1,38 +1,56 @@
-name: Build Windows EXE
+name: Build Windows FINAL
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Install dependencies
-        run: pip install -r requirements.txt pyinstaller
-      - name: Create P277 icon
+          python-version: "3.12"
+
+      - name: Install
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Validate
+        run: python -m py_compile app.py
+
+      - name: Create icon
         shell: pwsh
         run: |
           @'
           from PIL import Image, ImageDraw, ImageFont
-          im=Image.new("RGBA",(256,256),(5,48,94,255))
-          d=ImageDraw.Draw(im)
-          d.rounded_rectangle((8,8,248,248),radius=44,fill=(7,66,125,255),outline=(58,167,255,255),width=8)
-          try: f=ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf",72)
-          except: f=ImageFont.load_default()
-          t="P277"; b=d.textbbox((0,0),t,font=f); x=(256-(b[2]-b[0]))/2; y=(256-(b[3]-b[1]))/2-5
-          d.text((x,y),t,font=f,fill="white",stroke_width=3,stroke_fill=(0,25,55,255))
-          im.save("P277.ico",format="ICO",sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          im = Image.new("RGBA", (256,256), (5,48,94,255))
+          d = ImageDraw.Draw(im)
+          d.rounded_rectangle((8,8,248,248), radius=44, fill=(7,66,125,255), outline=(58,167,255,255), width=8)
+          try:
+              f = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 72)
+          except:
+              f = ImageFont.load_default()
+          t = "P277"
+          b = d.textbbox((0,0), t, font=f)
+          d.text(((256-(b[2]-b[0]))/2, (256-(b[3]-b[1]))/2-5), t, font=f, fill="white", stroke_width=3, stroke_fill=(0,25,55,255))
+          im.save("P277.ico", format="ICO", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
           '@ | python
-      - name: Validate Python syntax\n        run: python -m py_compile app.py\n      - name: Build Defender-friendly folder release
-        run: pyinstaller --noconfirm --clean --onedir --windowed --noupx --name "Datownik_by_Projekt_277_PJ" --icon P277.ico --version-file version_info.txt --add-data "P277.ico;." app.py
-      - name: ZIP release
+
+      - name: Build
+        run: pyinstaller --noconfirm --clean --onedir --windowed --noupx --name Datownik_by_Projekt_277_PJ --icon P277.ico --version-file version_info.txt --add-data "P277.ico;." app.py
+
+      - name: Package
         shell: pwsh
-        run: Compress-Archive -Path "dist/Datownik_by_Projekt_277_PJ/*" -DestinationPath "Datownik_by_Projekt_277_PJ_Windows.zip"
-      - uses: actions/upload-artifact@v4
+        run: Compress-Archive -Path "dist/Datownik_by_Projekt_277_PJ/*" -DestinationPath "Datownik_by_Projekt_277_PJ_FINAL.zip"
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
         with:
-          name: Datownik_by_Projekt_277_PJ_Windows
-          path: Datownik_by_Projekt_277_PJ_Windows.zip
+          name: Datownik_by_Projekt_277_PJ_FINAL
+          path: Datownik_by_Projekt_277_PJ_FINAL.zip
