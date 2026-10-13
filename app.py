@@ -75,7 +75,7 @@ class App(tk.Tk):
   self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[]
   self.fontv=tk.StringVar(value="LCD");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
   self.sz=tk.IntVar(value=44);self.tm=tk.BooleanVar();self.gp=tk.BooleanVar();self.exif=tk.BooleanVar(value=True)
-  self.manual=tk.BooleanVar();self.mdate=tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
+  self.manual=tk.BooleanVar();self.mdate=tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"));self.sample_date=date(2026,6,10)
   self.x=.97;self.y=.95;self.anchor="se";self.ui()
  def ui(self):
   l=ttk.Frame(self,padding=12);l.pack(side="left",fill="y");r=ttk.Frame(self,padding=12);r.pack(fill="both",expand=True)
@@ -92,9 +92,9 @@ class App(tk.Tk):
   ttk.Checkbutton(l,text="Zmień datę wykonania EXIF (zachowaj godzinę)",variable=self.exif).pack(anchor="w")
   ttk.Label(l,text="Położenie").pack(anchor="w",pady=(8,2));p=ttk.Frame(l);p.pack(fill="x")
   for t,x,y,a in [("↖",.03,.05,"nw"),("↗",.97,.05,"ne"),("↙",.03,.95,"sw"),("↘",.97,.95,"se")]:ttk.Button(p,text=t,command=lambda x=x,y=y,a=a:self.setpos(x,y,a)).pack(side="left",expand=True,fill="x")
-  ttk.Label(l,text="Datownik możesz przeciągać myszką na podglądzie.",wraplength=350).pack(anchor="w",pady=7)
+  ttk.Label(l,text="Podgląd pokazuje przykładową datę 10.06.2026. Ustaw jej wygląd i przeciągnij ją myszką. Podczas datowania program wstawi właściwą datę z Excel lub wpisaną ręcznie.",wraplength=350).pack(anchor="w",pady=7)
   ttk.Button(l,text="URUCHOM DATOWANIE",command=self.start).pack(fill="x",pady=(10,4));self.pb=ttk.Progressbar(l);self.pb.pack(fill="x");self.st=ttk.Label(l,text="Gotowy");self.st.pack(anchor="w")
-  ttk.Label(r,text="Podgląd pierwszego zdjęcia",font=("Segoe UI",14,"bold")).pack(anchor="w");self.cv=tk.Canvas(r,bg="#06294d",highlightthickness=0);self.cv.pack(fill="both",expand=True,pady=(8,0));self.cv.bind("<Configure>",lambda e:self.refresh());self.cv.bind("<Button-1>",self.drag);self.cv.bind("<B1-Motion>",self.drag)
+  ttk.Label(r,text="Podgląd ustawienia datownika — przykład 10.06.2026",font=("Segoe UI",14,"bold")).pack(anchor="w");self.cv=tk.Canvas(r,bg="#06294d",highlightthickness=0);self.cv.pack(fill="both",expand=True,pady=(8,0));self.cv.bind("<Configure>",lambda e:self.refresh());self.cv.bind("<Button-1>",self.drag);self.cv.bind("<B1-Motion>",self.drag)
  def pickfolder(self):
   p=filedialog.askdirectory()
   if p:self.src.set(p);self.sl.config(text=p);self.first()
@@ -137,13 +137,9 @@ class App(tk.Tk):
  def chosen_manual(self):
   return pdate(self.mdate.get())
  def previewdate(self):
-  if self.manual.get():return self.chosen_manual() or datetime.now().date()
-  try:
-   if self.preview and self.date_map:
-    d,_=self.match(self.preview,self.date_map)
-    if d:return d
-  except:pass
-  return datetime.now().date()
+  # Podgląd zawsze używa stałej daty przykładowej.
+  # Właściwe daty są pobierane dopiero podczas przetwarzania.
+  return self.sample_date
  def refresh(self):
   if not hasattr(self,"cv") or not self.preview or self.preview_img is None:return
   try:
