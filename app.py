@@ -179,19 +179,26 @@ class App(tk.Tk):
   # Właściwe daty są pobierane dopiero podczas przetwarzania.
   return self.sample_date
  def refresh(self):
-  if not hasattr(self,"cv") or not self.preview or self.preview_img is None:return
+  if not hasattr(self,"cv"):return
+  self.cv.delete("all")
+  if not self.preview or self.preview_img is None:
+   self.cv.create_text(max(200,self.cv.winfo_width()//2),max(120,self.cv.winfo_height()//2),text="Wybierz folder zdjęć — tutaj pojawi się podgląd datownika 10.06.2026",fill="white",font=("Segoe UI",16,"bold"),width=520)
+   return
   try:
-   self.cv.delete("all");im=self.preview_img;ex=self.preview_exif
+   im=self.preview_img.copy();ex=self.preview_exif
+   # Najpierw nanosimy datę NA KOPIĘ PEŁNEGO ZDJĘCIA, dokładnie jak przy zapisie finalnym.
+   txt=textval(self.sample_date,self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get())
+   full_fs=max(18,int(min(im.width,im.height)*(self.sz.get()/1000.0)))
+   draw_stamp(im,(self.x*im.width,self.y*im.height),txt,self.fontv.get(),full_fs,self.anchor)
+   # Dopiero gotowe zdjęcie z datą skalujemy do okna podglądu.
    cw=max(100,self.cv.winfo_width());ch=max(100,self.cv.winfo_height());sc=min(cw/im.width,ch/im.height)
    w=max(1,int(im.width*sc));h=max(1,int(im.height*sc));ox=(cw-w)//2;oy=(ch-h)//2
    shown=im.resize((w,h),Image.Resampling.LANCZOS)
-   txt=textval(self.previewdate(),self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get())
-   fs=max(16,int(min(w,h)*(self.sz.get()/1000.0)))
-   # Renderujemy stempel na przezroczystej warstwie PIL: podgląd = finalny renderer.
-   layer=Image.new("RGBA",(w,h),(0,0,0,0));draw_stamp(layer,(self.x*w,self.y*h),txt,self.fontv.get(),fs,self.anchor)
-   base=shown.convert("RGBA");base.alpha_composite(layer);self.photo=ImageTk.PhotoImage(base)
-   self.cv.create_image(ox,oy,image=self.photo,anchor="nw");self.box=(ox,oy,w,h)
-  except Exception as e:self.st.config(text="Podgląd: "+str(e))
+   self.photo=ImageTk.PhotoImage(shown);self.cv.create_image(ox,oy,image=self.photo,anchor="nw")
+   self.box=(ox,oy,w,h);self.st.config(text="Podgląd: przykładowa data 10.06.2026")
+  except Exception as e:
+   self.st.config(text="Błąd podglądu: "+str(e))
+   self.cv.create_text(20,20,text="Błąd podglądu: "+str(e),fill="white",anchor="nw",width=max(200,self.cv.winfo_width()-40))
  def drag(self,e):
   if self.box:
    ox,oy,w,h=self.box
