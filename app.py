@@ -51,17 +51,48 @@ def gps(ex):
   return a,b
  except:return None
 STYLES={
- "Canon klasyczny":("arialbd.ttf",(255,155,33),(43,18,0)),
- "Nikon żółty":("arialbd.ttf",(255,220,35),(20,20,20)),
- "Sony biały":("segoeuib.ttf",(255,255,255),(0,0,0)),
- "Fuji cyfrowy":("consolab.ttf",(255,165,35),(0,0,0)),
- "Olympus czerwony":("courbd.ttf",(255,85,65),(25,0,0))
+ "LCD 7-segment":("segment",(255,145,25),(55,18,0)),
+ "OSD kamera":("osd",(255,255,255),(0,0,0)),
+ "Pixel retro":("pixel",(255,175,25),(45,15,0)),
+ "Pomarańczowy klasyczny":("classic",(255,125,20),(65,20,0)),
+ "Żółty retro":("retro",(255,220,35),(45,35,0))
 }
-def getfont(name,size):
- fontfile=STYLES.get(name,STYLES["Canon klasyczny"])[0]
- p=os.path.join(os.environ.get("WINDIR","C:/Windows"),"Fonts",fontfile)
+SEG={"0":"abcedf","1":"bc","2":"abdeg","3":"abcdg","4":"bcfg","5":"acdfg","6":"acdefg","7":"abc","8":"abcdefg","9":"abcdfg"}
+def style_font(kind,size):
+ names={"osd":"lucon.ttf","pixel":"courbd.ttf","classic":"arialbd.ttf","retro":"consolab.ttf"}
+ p=os.path.join(os.environ.get("WINDIR","C:/Windows"),"Fonts",names.get(kind,"consolab.ttf"))
  try:return ImageFont.truetype(p,size)
  except:return ImageFont.load_default()
+def draw_segment_text(im,pos,text,size,fill,stroke,anchor="nw"):
+ scale=max(1,size//10);cw=int(size*.62);ch=size;gap=max(2,size//7);total=len(text)*(cw+gap)-gap
+ x,y=pos
+ if "e" in anchor:x-=total
+ elif anchor=="center":x-=total/2
+ if "s" in anchor:y-=ch
+ elif anchor=="center":y-=ch/2
+ d=ImageDraw.Draw(im)
+ segs={"a":(.16,.05,.84,.05),"b":(.88,.12,.88,.46),"c":(.88,.54,.88,.88),"d":(.16,.95,.84,.95),"e":(.08,.54,.08,.88),"f":(.08,.12,.08,.46),"g":(.16,.50,.84,.50)}
+ for c in text:
+  if c.isdigit():
+   for k in SEG.get(c,""):
+    q=segs[k];d.line((x+q[0]*cw,y+q[1]*ch,x+q[2]*cw,y+q[3]*ch),fill=stroke,width=scale*3)
+    d.line((x+q[0]*cw,y+q[1]*ch,x+q[2]*cw,y+q[3]*ch),fill=fill,width=scale)
+  elif c in ".-/:":
+   if c==".":d.ellipse((x+cw*.42,y+ch*.84,x+cw*.58,y+ch),fill=fill)
+   elif c==":":
+    d.ellipse((x+cw*.42,y+ch*.28,x+cw*.58,y+ch*.44),fill=fill);d.ellipse((x+cw*.42,y+ch*.65,x+cw*.58,y+ch*.81),fill=fill)
+   else:d.line((x+cw*.18,y+ch*(.72 if c=="/" else .5),x+cw*.82,y+ch*(.28 if c=="/" else .5)),fill=fill,width=scale*2)
+  x+=cw+gap
+ return total,ch
+def draw_stamp(im,pos,text,style,size,anchor):
+ kind,fill,stroke=STYLES[style]
+ if kind=="segment":return draw_segment_text(im,pos,text,size,fill,stroke,anchor)
+ d=ImageDraw.Draw(im);fo=style_font(kind,size);sw=max(1,size//18)
+ if kind=="pixel":sw=max(1,size//24)
+ bb=d.textbbox((0,0),text,font=fo,stroke_width=sw);tw=bb[2]-bb[0];th=bb[3]-bb[1];x,y=pos
+ off={"nw":(0,0),"ne":(tw,0),"sw":(0,th),"se":(tw,th),"center":(tw/2,th/2)}.get(anchor,(0,0))
+ d.text((x-off[0],y-off[1]),text,font=fo,fill=fill,stroke_width=sw,stroke_fill=stroke)
+ return tw,th
 def textval(d,layout,sep,ex,tm,gp):
  s=(f"{d.day:02d}{sep}{d.month:02d}{sep}{d.year:04d}" if layout=="DD MM RRRR" else f"{d.year:04d}{sep}{d.month:02d}{sep}{d.day:02d}")
  a=[s]
@@ -80,7 +111,7 @@ class App(tk.Tk):
   except:pass
   st=ttk.Style(self);st.theme_use("clam");st.configure(".",background="#0b3d73",foreground="white",fieldbackground="#eaf4ff");st.configure("TFrame",background="#0b3d73");st.configure("TLabel",background="#0b3d73",foreground="white");st.configure("TCheckbutton",background="#0b3d73",foreground="white");st.configure("TButton",background="#1677d2",foreground="white",padding=6);st.map("TButton",background=[("active","#2493f2")]);st.configure("TCombobox",fieldbackground="white",foreground="#082b50")
   self.src=tk.StringVar();self.exc=[];self.preview=None;self.photo=None;self.box=None;self.preview_img=None;self.preview_exif={};self.date_map={};self.date_conf=[]
-  self.fontv=tk.StringVar(value="Canon klasyczny");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
+  self.fontv=tk.StringVar(value="LCD 7-segment");self.layout=tk.StringVar(value="DD MM RRRR");self.sep=tk.StringVar(value=".")
   self.sz=tk.IntVar(value=44);self.tm=tk.BooleanVar();self.gp=tk.BooleanVar();self.exif=tk.BooleanVar(value=True)
   self.manual=tk.BooleanVar();self.mdate=tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"));self.sample_date=date(2026,6,10)
   self.x=.97;self.y=.95;self.anchor="se";self.ui()
@@ -150,22 +181,21 @@ class App(tk.Tk):
  def refresh(self):
   if not hasattr(self,"cv") or not self.preview or self.preview_img is None:return
   try:
-   self.cv.delete("all")
-   ex=self.preview_exif;im=self.preview_img
+   self.cv.delete("all");im=self.preview_img;ex=self.preview_exif
    cw=max(100,self.cv.winfo_width());ch=max(100,self.cv.winfo_height());sc=min(cw/im.width,ch/im.height)
    w=max(1,int(im.width*sc));h=max(1,int(im.height*sc));ox=(cw-w)//2;oy=(ch-h)//2
-   shown=im.resize((w,h),Image.Resampling.LANCZOS);self.photo=ImageTk.PhotoImage(shown);self.cv.create_image(ox,oy,image=self.photo,anchor="nw")
+   shown=im.resize((w,h),Image.Resampling.LANCZOS)
    txt=textval(self.previewdate(),self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get())
-   fs=max(12,int(self.sz.get()*sc));fn="Consolas" if self.fontv.get()=="LCD" else self.fontv.get()
-   self.cv.create_text(ox+self.x*w,oy+self.y*h,text=txt,font=(fn,fs,"bold"),fill="#ff9b21",stroke_width=max(1,fs//18),stroke_fill="#2b1200",anchor=self.anchor,tags=("stamp",))
-   self.box=(ox,oy,w,h)
+   fs=max(16,int(min(w,h)*(self.sz.get()/1000.0)))
+   # Renderujemy stempel na przezroczystej warstwie PIL: podgląd = finalny renderer.
+   layer=Image.new("RGBA",(w,h),(0,0,0,0));draw_stamp(layer,(self.x*w,self.y*h),txt,self.fontv.get(),fs,self.anchor)
+   base=shown.convert("RGBA");base.alpha_composite(layer);self.photo=ImageTk.PhotoImage(base)
+   self.cv.create_image(ox,oy,image=self.photo,anchor="nw");self.box=(ox,oy,w,h)
   except Exception as e:self.st.config(text="Podgląd: "+str(e))
  def drag(self,e):
   if self.box:
    ox,oy,w,h=self.box
-   self.x=min(.99,max(.01,(e.x-ox)/w));self.y=min(.99,max(.01,(e.y-oy)/h));self.anchor="center"
-   self.cv.itemconfigure("stamp",anchor="center")
-   self.cv.coords("stamp",ox+self.x*w,oy+self.y*h)
+   self.x=min(.99,max(.01,(e.x-ox)/w));self.y=min(.99,max(.01,(e.y-oy)/h));self.anchor="center";self.refresh()
  def setpos(self,x,y,a):
   self.x=x;self.y=y;self.anchor=a;self.refresh()
  def start(self):
@@ -191,7 +221,7 @@ class App(tk.Tk):
       bud=next((a.name for a in [p.parent,*p.parents] if norm(a.name).startswith("BUD ")),p.parent.name);missing.add(bud);rows.append([str(p.relative_to(root)),bud,"BRAK DATY"]);self.after(0,lambda v=i:self.pb.configure(value=v));continue
     try:
      with Image.open(p) as src:ex=src.getexif();ot=xtime(ex);icc=src.info.get("icc_profile");im=ImageOps.exif_transpose(src).convert("RGB")
-     txt=textval(d,self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get());fontfile,fill_rgb,stroke_rgb=STYLES[self.fontv.get()];font_size=max(16,int(min(im.width,im.height)*(self.sz.get()/1000.0)));fo=getfont(self.fontv.get(),font_size);dr=ImageDraw.Draw(im);sw=max(2,font_size//16);bb=dr.textbbox((0,0),txt,font=fo,stroke_width=sw);tw=bb[2]-bb[0];th=bb[3]-bb[1];xx=self.x*im.width;yy=self.y*im.height;off={"nw":(0,0),"ne":(tw,0),"sw":(0,th),"se":(tw,th),"center":(tw/2,th/2)}[self.anchor];dr.text((xx-off[0],yy-off[1]),txt,font=fo,fill=fill_rgb,stroke_width=sw,stroke_fill=stroke_rgb)
+     txt=textval(d,self.layout.get(),self.sep.get(),ex,self.tm.get(),self.gp.get());font_size=max(16,int(min(im.width,im.height)*(self.sz.get()/1000.0)));draw_stamp(im,(self.x*im.width,self.y*im.height),txt,self.fontv.get(),font_size,self.anchor)
      if self.exif.get():
       val=f"{d:%Y:%m:%d} {ot:%H:%M:%S}" if ot else f"{d:%Y:%m:%d} 00:00:00"
       for t in DATE_TAGS:ex[t]=val
